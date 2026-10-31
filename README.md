@@ -262,7 +262,38 @@ npm run test
 
 ---
 
-## 10. Estrategia de Base de Datos y PostgreSQL
+## 10. Despliegue en Netlify y Ejecución en Carpeta Raíz
+
+El proyecto está configurado para desplegarse de manera transparente y automática en **Netlify**:
+
+### A. Configuración Integrada para Netlify
+- **[`netlify.toml`](file:///C:/Users/ETORTECHNOLOGY/Desktop/lumina/netlify.toml)**: Archivo de configuración en la raíz que define:
+  - Comando de construcción: `npm run build`
+  - Carpeta de publicación: `dist`
+  - Reglas de redirección de SPA: `/* -> /index.html (200)` para que rutas como `/my-music` o `/dashboard` funcionen perfectamente al recargar el navegador.
+- **[`_redirects`](file:///C:/Users/ETORTECHNOLOGY/Desktop/lumina/_redirects)**: Archivo de soporte para enrutamiento SPA compatible con Netlify.
+- **[`index.html`](file:///C:/Users/ETORTECHNOLOGY/Desktop/lumina/index.html)**: Disponible y sincronizado en la raíz del proyecto para compatibilidad inmediata con cualquier proveedor de hosting.
+
+### B. Pasos para Desplegar en Netlify
+1. En tu panel de **Netlify**, haz clic en **"Add new site"** > **"Import an existing project"**.
+2. Selecciona **GitHub** y escoge el repositorio: `https://github.com/mariguzso04-dotcom/Lumina`.
+3. Netlify detectará automáticamente el archivo `netlify.toml` de la raíz:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+4. Haz clic en **"Deploy Lumina"**. ¡Tu sitio estará en línea en pocos segundos!
+
+### C. Ejecutable Principal en la Carpeta Raíz (`index.js`)
+Para ejecutar la plataforma completa con un único comando desde la raíz:
+```bash
+# Iniciar servidor unificado (Frontend + API REST)
+node index.js
+# o
+npm start
+```
+
+---
+
+## 11. Estrategia de Base de Datos y PostgreSQL
 
 - **En este entorno local:** Se ejecutaron y verificaron al 100% las migraciones, seeds y pruebas automatizadas con **SQLite**.
 - **Para producción con PostgreSQL:**

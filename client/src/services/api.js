@@ -1,5 +1,9 @@
 // Cliente HTTP centralizado para la API de LÚMINA
 
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) 
+  ? import.meta.env.VITE_API_URL.replace(/\/$/, '') 
+  : '';
+
 let authToken = localStorage.getItem('lumina_token') || null;
 
 export function setAuthToken(token) {
@@ -34,7 +38,8 @@ export async function request(endpoint, options = {}) {
     config.body = JSON.stringify(config.body);
   }
 
-  const response = await fetch(endpoint, config);
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(fullUrl, config);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {

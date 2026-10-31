@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "LÚMINA - Plataforma de bienestar emocional, autorreflexión y refugio digital",
   "private": true,
+  "main": "index.js",
   "scripts": {
     "dev": "node dev.js",
-    "start": "npm run start --prefix server",
+    "start": "node index.js",
+    "build": "node scripts/build.js",
+    "postinstall": "npm install --prefix client && npm install --prefix server",
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
-    "build": "npm run build --prefix client",
     "test": "npm run test --prefix server",
     "db:init:sqlite": "npm run db:init:sqlite --prefix server",
     "db:init:postgres": "npm run db:init:postgres --prefix server"

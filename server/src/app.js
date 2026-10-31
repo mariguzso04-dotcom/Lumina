@@ -17,8 +17,15 @@ const app = express();
 // Configuración de CORS segura
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir solicitudes locales de desarrollo y herramientas de prueba
-    if (!origin || origin === config.corsOrigin || origin.startsWith('http://localhost:')) {
+    // Permitir solicitudes locales de desarrollo, despliegues en Netlify y herramientas de prueba
+    if (
+      !origin || 
+      config.corsOrigin === '*' ||
+      origin === config.corsOrigin || 
+      origin.startsWith('http://localhost:') || 
+      origin.endsWith('.netlify.app') ||
+      origin.includes('netlify.app')
+    ) {
       return callback(null, true);
     }
     return callback(new Error('Bloqueado por política CORS de LÚMINA'));
