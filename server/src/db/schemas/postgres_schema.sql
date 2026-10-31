@@ -1,0 +1,177 @@
+-- LÚMINA - Esquema PostgreSQL para producción y entornos multiusuario
+
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(64) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    preferred_theme VARCHAR(30) DEFAULT 'dark',
+    music_preferences TEXT DEFAULT '{}',
+    accessibility_preferences TEXT DEFAULT '{"reducedMotion":false,"highContrast":false}',
+    onboarding_completed SMALLINT DEFAULT 0,
+    onboarding_answers TEXT DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS mood_entries (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    emotions TEXT NOT NULL,
+    intensity INTEGER NOT NULL CHECK (intensity >= 1 AND intensity <= 5),
+    factors TEXT DEFAULT '[]',
+    context_note TEXT,
+    helpful_activities TEXT DEFAULT '[]',
+    post_action VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS journal_entries (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    mood_tag VARCHAR(50),
+    is_favorite SMALLINT DEFAULT 0,
+    is_draft SMALLINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_tracks (
+    id VARCHAR(64) PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    artist VARCHAR(100) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    audio_url TEXT NOT NULL,
+    is_soundscape SMALLINT DEFAULT 0,
+    soundscape_preset VARCHAR(50),
+    license_info VARCHAR(255) NOT NULL,
+    duration_seconds INTEGER DEFAULT 0,
+    is_active SMALLINT DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_favorites (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    track_id VARCHAR(64) NOT NULL REFERENCES music_tracks(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, track_id)
+);
+
+CREATE TABLE IF NOT EXISTS wellness_activities (
+    id VARCHAR(64) PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    instructions TEXT NOT NULL,
+    recommended_for TEXT DEFAULT '[]',
+    is_active SMALLINT DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS activity_history (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    activity_id VARCHAR(64) NOT NULL REFERENCES wellness_activities(id) ON DELETE CASCADE,
+    completed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    duration_seconds INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS support_resources (
+    id VARCHAR(64) PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    country_code VARCHAR(10) NOT NULL,
+    service_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    website VARCHAR(255),
+    is_emergency SMALLINT DEFAULT 1,
+    is_active SMALLINT DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices en PostgreSQL
+CREATE INDEX IF NOT EXISTS idx_pg_mood_entries_user_date ON mood_entries(user_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_pg_journal_entries_user_date ON journal_entries(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_pg_music_tracks_cat ON music_tracks(category, is_active);
+CREATE INDEX IF NOT EXISTS idx_pg_music_fav_user ON music_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_pg_support_country ON support_resources(country_code, is_active);
+
+-- ===================================================================
+-- SECCIÓN "MI MÚSICA": Artistas favoritos, Canciones favoritas y Listas personales
+-- ===================================================================
+
+CREATE TABLE IF NOT EXISTS favorite_artists (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    artist_name VARCHAR(255) NOT NULL,
+    platform VARCHAR(50) NOT NULL DEFAULT 'spotify',
+    external_id VARCHAR(255),
+    image_url TEXT,
+    genres TEXT DEFAULT '[]',
+    external_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, platform, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_favorite_tracks (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    artist VARCHAR(255) NOT NULL,
+    album VARCHAR(255),
+    platform VARCHAR(50) NOT NULL DEFAULT 'spotify',
+    external_id VARCHAR(255) NOT NULL,
+    cover_url TEXT,
+    duration_seconds INTEGER DEFAULT 0,
+    preview_url TEXT,
+    external_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, platform, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_playlists (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    cover_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS playlist_tracks (
+    id VARCHAR(64) PRIMARY KEY,
+    playlist_id VARCHAR(64) NOT NULL REFERENCES user_playlists(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    artist VARCHAR(255) NOT NULL,
+    album VARCHAR(255),
+    platform VARCHAR(50) NOT NULL DEFAULT 'spotify',
+    external_id VARCHAR(255) NOT NULL,
+    cover_url TEXT,
+    duration_seconds INTEGER DEFAULT 0,
+    preview_url TEXT,
+    external_url TEXT,
+    position INTEGER DEFAULT 0,
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(playlist_id, platform, external_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pg_fav_artists_user ON favorite_artists(user_id);
+CREATE INDEX IF NOT EXISTS idx_pg_fav_tracks_user ON user_favorite_tracks(user_id);
+CREATE INDEX IF NOT EXISTS idx_pg_user_playlists_user ON user_playlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_pg_playlist_tracks_pl ON playlist_tracks(playlist_id);
+

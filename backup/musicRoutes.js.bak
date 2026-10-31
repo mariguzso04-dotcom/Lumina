@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const musicController = require('../controllers/musicController');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
+
+router.get('/', optionalAuth, musicController.listTracks);
+router.get('/categories', musicController.listCategories);
+router.get('/favorites', requireAuth, musicController.listFavorites);
+router.post('/favorites/:trackId', requireAuth, musicController.addFavorite);
+router.delete('/favorites/:trackId', requireAuth, musicController.removeFavorite);
+
+module.exports = router;

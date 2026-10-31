@@ -1,0 +1,142 @@
+const crypto = require('crypto');
+const { getDB } = require('../db');
+
+async function listTracks(req, res, next) {
+  try {
+    const { category } = req.query;
+    const db = await getDB();
+
+    let sql = 'SELECT * FROM music_tracks WHERE is_active = 1';
+    const params = [];
+
+    if (category) {
+      sql += ' AND category = ?';
+      params.push(category);
+    }
+
+    sql += ' ORDER BY title ASC';
+    const tracks = await db.all(sql, params);
+
+    // Si el usuario está autenticado, identificar favoritos
+    let favoriteTrackIds = new Set();
+    if (req.user) {
+      const favs = await db.all(
+        'SELECT track_id FROM music_favorites WHERE user_id = ?',
+        [req.user.id]
+      );
+      favoriteTrackIds = new Set(favs.map(f => f.track_id));
+    }
+
+    const formatted = tracks.map(t => ({
+      ...t,
+      is_soundscape: Boolean(t.is_soundscape),
+      is_active: Boolean(t.is_active),
+      is_favorite: favoriteTrackIds.has(t.id)
+    }));
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listCategories(req, res, next) {
+  try {
+    const db = await getDB();
+    const rows = await db.all(
+      'SELECT DISTINCT category FROM music_tracks WHERE is_active = 1 ORDER BY category ASC'
+    );
+    const categories = rows.map(r => r.category);
+
+    res.json({
+      success: true,
+      data: categories
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listFavorites(req, res, next) {
+  try {
+    const db = await getDB();
+    const sql = `
+      SELECT t.* FROM music_tracks t
+      INNER JOIN music_favorites f ON t.id = f.track_id
+      WHERE f.user_id = ? AND t.is_active = 1
+      ORDER BY f.created_at DESC
+    `;
+    const tracks = await db.all(sql, [req.user.id]);
+
+    const formatted = tracks.map(t => ({
+      ...t,
+      is_soundscape: Boolean(t.is_soundscape),
+      is_active: Boolean(t.is_active),
+      is_favorite: true
+    }));
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function addFavorite(req, res, next) {
+  try {
+    const { trackId } = req.params;
+    const db = await getDB();
+
+    const track = await db.get('SELECT id FROM music_tracks WHERE id = ?', [trackId]);
+    if (!track) {
+      return res.status(404).json({ success: false, error: 'Pista musical no encontrada.' });
+    }
+
+    const favId = 'fav_' + crypto.randomUUID();
+    await db.run(
+      'INSERT OR IGNORE INTO music_favorites (id, user_id, track_id) VALUES (?, ?, ?)',
+      [favId, req.user.id, trackId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Añadida a tus favoritos musicales.',
+      data: { track_id: trackId, is_favorite: true }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeFavorite(req, res, next) {
+  try {
+    const { trackId } = req.params;
+    const db = await getDB();
+
+    await db.run(
+      'DELETE FROM music_favorites WHERE user_id = ? AND track_id = ?',
+      [req.user.id, trackId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Eliminada de tus favoritos.',
+      data: { track_id: trackId, is_favorite: false }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  listTracks,
+  listCategories,
+  listFavorites,
+  addFavorite,
+  removeFavorite
+};

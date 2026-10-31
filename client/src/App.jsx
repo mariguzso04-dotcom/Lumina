@@ -1,0 +1,147 @@
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AudioProvider } from './context/AudioContext';
+import { ThemeProvider } from './context/ThemeContext';
+
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import MobileNavigation from './components/MobileNavigation';
+import AudioAtmosphere from './components/AudioAtmosphere';
+
+import WelcomePage from './pages/WelcomePage';
+import OnboardingWizard from './pages/OnboardingWizard';
+import Dashboard from './pages/Dashboard';
+import MoodTracker from './pages/MoodTracker';
+import MoodHistory from './pages/MoodHistory';
+import Journal from './pages/Journal';
+import JournalEditor from './pages/JournalEditor';
+import MusicPlayerPage from './pages/MusicPlayerPage';
+import MyMusicPage from './pages/MyMusicPage';
+import BreathingExercise from './pages/BreathingExercise';
+import WellnessActivities from './pages/WellnessActivities';
+import MyRefuge from './pages/MyRefuge';
+import SupportResources from './pages/SupportResources';
+import UserProfile from './pages/UserProfile';
+import AdminPanel from './pages/AdminPanel';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import NotFoundPage from './pages/NotFoundPage';
+
+function MainApp() {
+  const { isAuthenticated, preferences, loading } = useAuth();
+  const [currentPage, setCurrentPage] = useState(() => {
+    return isAuthenticated ? 'dashboard' : 'welcome';
+  });
+  const [editJournalId, setEditJournalId] = useState(null);
+
+  const handleNavigate = (page) => {
+    if (page === 'journal-new') {
+      setEditJournalId(null);
+    }
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditEntry = (id) => {
+    setEditJournalId(id);
+    setCurrentPage('journal-edit');
+  };
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#A4CBB3',
+        fontFamily: 'var(--font-serif)',
+        fontSize: '1.25rem'
+      }}>
+        Encendiendo la luz de LÚMINA...
+      </div>
+    );
+  }
+
+  // Si está autenticado pero no completó onboarding y está en ruta inicial, mostrar wizard
+  const isPublicOnlyPage = currentPage === 'welcome' || currentPage === 'login' || currentPage === 'register';
+  const showSidebar = isAuthenticated && !isPublicOnlyPage && currentPage !== 'onboarding';
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'welcome':
+        return <WelcomePage onNavigate={handleNavigate} />;
+      case 'login':
+        return <LoginPage onNavigate={handleNavigate} />;
+      case 'register':
+        return <RegisterPage onNavigate={handleNavigate} />;
+      case 'onboarding':
+        return <OnboardingWizard onComplete={() => handleNavigate('dashboard')} />;
+      case 'dashboard':
+        return <Dashboard onNavigate={handleNavigate} />;
+      case 'mood':
+        return <MoodTracker onNavigate={handleNavigate} />;
+      case 'history':
+        return <MoodHistory onNavigate={handleNavigate} />;
+      case 'journal':
+        return <Journal onNavigate={handleNavigate} onEditEntry={handleEditEntry} />;
+      case 'journal-new':
+        return <JournalEditor onNavigate={handleNavigate} />;
+      case 'journal-edit':
+        return <JournalEditor entryId={editJournalId} onNavigate={handleNavigate} />;
+      case 'music':
+        return <MusicPlayerPage onNavigate={handleNavigate} />;
+      case 'my-music':
+        return <MyMusicPage onNavigate={handleNavigate} />;
+      case 'breathing':
+        return <BreathingExercise onNavigate={handleNavigate} />;
+      case 'activities':
+        return <WellnessActivities onNavigate={handleNavigate} />;
+      case 'refuge':
+        return <MyRefuge onNavigate={handleNavigate} />;
+      case 'support':
+        return <SupportResources onNavigate={handleNavigate} />;
+      case 'profile':
+        return <UserProfile onNavigate={handleNavigate} />;
+      case 'admin':
+        return <AdminPanel onNavigate={handleNavigate} />;
+      default:
+        return <NotFoundPage onNavigate={handleNavigate} />;
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Navbar onNavigate={handleNavigate} currentPage={currentPage} />
+
+      <div style={{ display: 'flex', flex: 1 }}>
+        {showSidebar && (
+          <Sidebar currentPage={currentPage} onNavigate={handleNavigate} />
+        )}
+
+        <main style={{ flex: 1, minWidth: 0, paddingBottom: '70px' }}>
+          {renderCurrentPage()}
+        </main>
+      </div>
+
+      {showSidebar && (
+        <MobileNavigation currentPage={currentPage} onNavigate={handleNavigate} />
+      )}
+
+      {/* Reproductor de audio ambiental persistente flotante */}
+      <AudioAtmosphere onNavigate={handleNavigate} />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AudioProvider>
+          <MainApp />
+        </AudioProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}

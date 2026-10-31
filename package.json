@@ -1,0 +1,27 @@
+{
+  "name": "lumina-platform",
+  "version": "1.0.0",
+  "description": "LÚMINA - Plataforma de bienestar emocional, autorreflexión y refugio digital",
+  "private": true,
+  "scripts": {
+    "dev": "node dev.js",
+    "start": "npm run start --prefix server",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "test": "npm run test --prefix server",
+    "db:init:sqlite": "npm run db:init:sqlite --prefix server",
+    "db:init:postgres": "npm run db:init:postgres --prefix server"
+  },
+  "keywords": [
+    "lumina",
+    "bienestar-emocional",
+    "salud-mental",
+    "react",
+    "express",
+    "sqlite",
+    "postgresql"
+  ],
+  "author": "Equipo LÚMINA",
+  "license": "MIT"
+}
